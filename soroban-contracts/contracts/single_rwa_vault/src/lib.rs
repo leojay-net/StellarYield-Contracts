@@ -518,6 +518,7 @@ impl SingleRWAVault {
     pub fn request_early_redemption(e: &Env, caller: Address, shares: i128) -> u32 {
         caller.require_auth();
         require_not_paused(e);
+        require_not_blacklisted(e, &caller);
 
         if shares <= 0 {
             panic_with_error!(e, Error::ZeroAmount);
