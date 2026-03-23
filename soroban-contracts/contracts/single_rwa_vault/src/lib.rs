@@ -931,3 +931,59 @@ fn require_not_blacklisted(e: &Env, addr: &Address) {
         panic_with_error!(e, Error::AddressBlacklisted);
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use soroban_sdk::testutils::Address as _;
+
+    fn create_test_token(e: &Env) -> Address {
+        e.register_stellar_asset_contract_v2(Address::generate(e)).address()
+    }
+
+    fn create_vault(e: &Env) -> (Address, Address, Address) {
+        let admin = Address::generate(e);
+        let asset = create_test_token(e);
+
+        let params = InitParams {
+            asset: asset.clone(),
+            share_name: String::from_str(e, "Vault Share"),
+            share_symbol: String::from_str(e, "vSHARE"),
+            share_decimals: 7,
+            admin: admin.clone(),
+            zkme_verifier: e.current_contract_address(),
+            cooperator: admin.clone(),
+            funding_target: 1000_0000000,
+            maturity_date: 0,
+            min_deposit: 1_0000000,
+            max_deposit_per_user: 0,
+            early_redemption_fee_bps: 100,
+            rwa_name: String::from_str(e, "Test RWA"),
+            rwa_symbol: String::from_str(e, "TRWA"),
+            rwa_document_uri: String::from_str(e, "https://example.com/doc"),
+            rwa_category: String::from_str(e, "Bonds"),
+            expected_apy: 500,
+        };
+
+        let vault_addr = e.register(SingleRWAVault, (params,));
+        (vault_addr, admin, asset)
+    }
+
+    #[test]
+    fn test_set_blacklisted_by_admin() {
+        let e = Env::default();
+        e.mock_all_auths();
+        let (vault_addr, admin, _asset) = create_vault(&e);
+        let client = SingleRWAVaultClient::new(&e, &vault_addr);
+
+        let user = Address::generate(&e);
+
+        assert_eq!(client.is_blacklisted(&user), false);
+
+        client.set_blacklisted(&admin, &user, &true);
+        assert_eq!(client.is_blacklisted(&user), true);
+
+        client.set_blacklisted(&admin, &user, &false);
+        assert_eq!(client.is_blacklisted(&user), false);
+    }
+}
