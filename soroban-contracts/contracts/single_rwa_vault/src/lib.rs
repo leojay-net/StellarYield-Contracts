@@ -1000,4 +1000,25 @@ mod test {
 
         client.set_blacklisted(&non_admin, &user, &true);
     }
+
+    #[test]
+    #[should_panic(expected = "Error(Contract, #14)")]
+    fn test_blacklisted_cannot_transfer() {
+        let e = Env::default();
+        e.mock_all_auths();
+        let (vault_addr, admin, asset) = create_vault(&e);
+        let client = SingleRWAVaultClient::new(&e, &vault_addr);
+        let token_client = token::Client::new(&e, &asset);
+        let token_admin = token::StellarAssetClient::new(&e, &asset);
+
+        let depositor = Address::generate(&e);
+        let recipient = Address::generate(&e);
+
+        token_admin.mint(&depositor, &100_0000000);
+        client.deposit(&depositor, &10_0000000, &depositor);
+
+        client.set_blacklisted(&admin, &depositor, &true);
+
+        client.transfer(&depositor, &recipient, &5_0000000);
+    }
 }
