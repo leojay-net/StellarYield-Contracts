@@ -588,6 +588,18 @@ impl SingleRWAVault {
     }
 
     // ─────────────────────────────────────────────────────────────────
+    // Blacklist
+    // ─────────────────────────────────────────────────────────────────
+
+    pub fn set_blacklisted(e: &Env, caller: Address, address: Address, status: bool) {
+        caller.require_auth();
+        require_admin(e, &caller);
+        put_blacklisted(e, &address, status);
+        emit_address_blacklisted(e, address, status);
+        bump_instance(e);
+    }
+
+    // ─────────────────────────────────────────────────────────────────
     // Emergency
     // ─────────────────────────────────────────────────────────────────
 
